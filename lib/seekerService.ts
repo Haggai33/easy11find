@@ -65,3 +65,57 @@ export const getUserTrackedListings = async (userId: string) => {
     return { listings: [], error: e as Error };
   }
 };
+
+// Function to get user preference profiles
+export const getUserPreferenceProfiles = async (userId: string) => {
+  try {
+    const profilesRef = ref(db, `users/${userId}/preferenceProfiles`);
+    const snapshot = await get(profilesRef);
+    if (snapshot.exists()) {
+      return { profiles: snapshot.val() as Record<string, PreferenceProfile>, error: null };
+    }
+    return { profiles: {}, error: null };
+  } catch (e) {
+    return { profiles: {}, error: e as Error };
+  }
+};
+
+// Function to save a preference profile
+export const savePreferenceProfile = async (userId: string, profile: Omit<PreferenceProfile, 'id'>) => {
+  try {
+    const profilesRef = ref(db, `users/${userId}/preferenceProfiles`);
+    const newProfileRef = push(profilesRef);
+    const newId = newProfileRef.key;
+    if (!newId) throw new Error("Failed to generate profile ID");
+
+    const newProfile: PreferenceProfile = { ...profile, id: newId };
+    await set(ref(db, `users/${userId}/preferenceProfiles/${newId}`), newProfile);
+    return { success: true, profile: newProfile, error: null };
+  } catch (e) {
+    return { success: false, profile: null, error: e as Error };
+  }
+};
+
+
+// Function to update a preference profile
+export const updatePreferenceProfile = async (userId: string, profileId: string, profileData: Partial<PreferenceProfile>) => {
+  try {
+    const profileRef = ref(db, `users/${userId}/preferenceProfiles/${profileId}`);
+    await update(profileRef, profileData);
+    return { success: true, error: null };
+  } catch (e) {
+    return { success: false, error: e as Error };
+  }
+};
+
+
+// Function to delete a preference profile
+export const deletePreferenceProfile = async (userId: string, profileId: string) => {
+  try {
+    const profileRef = ref(db, `users/${userId}/preferenceProfiles/${profileId}`);
+    await remove(profileRef);
+    return { success: true, error: null };
+  } catch (e) {
+    return { success: false, error: e as Error };
+  }
+};

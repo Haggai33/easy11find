@@ -27,6 +27,12 @@ export interface User {
   createdAt: string; // ISO String
 }
 
+export interface PreferenceProfile {
+  id: string;
+  name: string;
+  fieldOrder: string[]; // מערך של id-ים של שדות, לפי הסדר הרצוי
+}
+
 export interface PrivateChecklist {
   ratings: {
     [fieldId: string]: {

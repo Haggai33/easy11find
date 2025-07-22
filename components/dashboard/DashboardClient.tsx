@@ -41,9 +41,6 @@ export default function DashboardClient() {
     return () => unsubscribe();
   }, [user]);
 
-        
-
-
   const getAverageRating = (checklist: any) => {
     const ratings = checklist?.ratings || {};
     const ratingValues = Object.values(ratings).map((r: any) => r.rating).filter(Boolean);
@@ -67,12 +64,19 @@ export default function DashboardClient() {
           <h2 className="text-2xl font-bold text-gray-900">My Tracked Apartments</h2>
           <p className="text-gray-600">Manage and compare your apartment options</p>
         </div>
-        <Link href="/dashboard/track-new">
-          <Button className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add External Listing
-          </Button>
-        </Link>
+        {/* ======================= שינוי: הוספת עטיפה וכפתור ניהול פרופילים ======================= */}
+        <div className="flex items-center gap-2">
+            <Link href="/dashboard/profiles">
+                <Button variant="outline">Manage Profiles</Button>
+            </Link>
+            <Link href="/dashboard/track-new">
+                <Button className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add External Listing
+                </Button>
+            </Link>
+        </div>
+        {/* ====================================================================================== */}
       </div>
 
       {/* Stats Overview */}
@@ -99,7 +103,7 @@ export default function DashboardClient() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Avg Rating</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {trackedListings.length > 0 
+                  {trackedListings.length > 0
                     ? (trackedListings.reduce((sum, listing) => sum + getAverageRating(listing.privateChecklist), 0) / trackedListings.length).toFixed(1)
                     : '0.0'
                   }
@@ -146,9 +150,9 @@ export default function DashboardClient() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {trackedListings.map((listing) => {
             const averageRating = getAverageRating(listing.privateChecklist);
-            const hasNotes = listing.privateChecklist?.generalNotes || 
-                           listing.privateChecklist?.pros || 
-                           listing.privateChecklist?.cons;
+            const hasNotes = listing.privateChecklist?.generalNotes ||
+                               listing.privateChecklist?.pros ||
+                               listing.privateChecklist?.cons;
 
             return (
               <Card key={listing.listingId} className="hover:shadow-lg transition-shadow">
@@ -156,8 +160,8 @@ export default function DashboardClient() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-lg font-semibold line-clamp-2">
-                        {listing.source === 'external_manual' 
-                          ? listing.manualData?.address 
+                        {listing.source === 'external_manual'
+                          ? listing.manualData?.address
                           : `Internal Listing`
                         }
                       </CardTitle>
