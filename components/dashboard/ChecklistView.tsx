@@ -44,8 +44,9 @@ const ContactActions = ({ contact }: { contact?: ContactDetails }) => {
 
 const AddressLink = ({ address }: { address?: string }) => {
     if (!address) return <span>כתובת לא צוינה</span>;
+    // תיקון הקישור ל-Google Maps
     return (
-        <a href={`https://maps.google.com/?q=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
+        <a href={`https://www.google.com/maps?q=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
             <MapPin className="w-5 h-5" /> {address}
         </a>
     );
@@ -202,98 +203,104 @@ export default function ChecklistView({ trackedListingId }: { trackedListingId: 
                 <CardHeader><CardTitle>פרטים ופעולות</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <div className="space-y-4">
-                        <div>
+                         <div>
                             <Label className="font-semibold">איש קשר: {manualData?.tenantContact?.name || ''}</Label>
                             <ContactActions contact={manualData?.tenantContact} />
                         </div>
-                        <div>
+                         <div>
                             <Label className="font-semibold">בעל הדירה: {manualData?.landlordContact?.name || ''}</Label>
                             <ContactActions contact={manualData?.landlordContact} />
                         </div>
                     </div>
-                    {/* ======================= התיקון נמצא כאן ======================= */}
-                    {/* הוספנו שרשור אופציונלי (?.) כדי למנוע קריסה אם privateChecklist לא קיים */}
                     <div className="space-y-3 text-sm border-t md:border-t-0 md:border-l md:pl-6 pt-4 md:pt-0">
                         <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-primary" /><Label>כניסה:</Label> {privateChecklist?.moveInDate || 'לא הוזן'}</div>
                         <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /><Label>סוג חוזה:</Label> {privateChecklist?.contractType || 'לא הוזן'}</div>
                         <div className="flex items-center gap-2"><PenSquare className="w-4 h-4 text-primary" /><Label>תאריך חוזה חדש:</Label> {privateChecklist?.newContractDate || 'לא הוזן'}</div>
                         <div className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" /><Label>שותפים:</Label> {privateChecklist?.roommates || 'לא הוזן'}</div>
                     </div>
-                    {/* ========================================================== */}
                 </CardContent>
             </Card>
 
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>צ&aposקליסט ודירוג</CardTitle>                        <div className="flex justify-between items-center">
+             <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <CardTitle>צ'קליסט ודירוג</CardTitle>
                             <CardDescription>כאן אפשר לדרג את הפרמטרים החשובים לך ולרשום הערות.</CardDescription>
-                            <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
-                                <SelectTrigger className="w-full sm:w-[200px]">
-                                    <SelectValue placeholder="בחר פרופיל..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="default">סדר ברירת מחדל</SelectItem>
-                                    {Object.values(profiles).map(profile => (
-                                        <SelectItem key={profile.id} value={profile.id}>{profile.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {orderedRatingCategories.map((category, index) => {
-                            const ratingData = checklist.ratings?.[category.id];
-                            const prefilledNote = ratingData?.notes;
-                            const hasPrefilledNote = prefilledNote !== undefined && prefilledNote !== '';
-                            let displayValue = prefilledNote;
-                            if (prefilledNote === 'true') displayValue = 'כן';
-                            if (prefilledNote === 'false') displayValue = 'לא';
+                        <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+                            <SelectTrigger className="w-full sm:w-[200px]">
+                                <SelectValue placeholder="בחר פרופיל..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="default">סדר ברירת מחדל</SelectItem>
+                                {Object.values(profiles).map(profile => (
+                                    <SelectItem key={profile.id} value={profile.id}>{profile.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {orderedRatingCategories.map((category, index) => {
+                        const ratingData = checklist.ratings?.[category.id];
+                        const prefilledNote = ratingData?.notes;
+                        const hasPrefilledNote = prefilledNote !== undefined && prefilledNote !== '';
+                        let displayValue = prefilledNote;
+                        if (prefilledNote === 'true') displayValue = 'כן';
+                        if (prefilledNote === 'false') displayValue = 'לא';
 
-                            return (
-                                <div key={category.id}>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-base font-medium flex items-center gap-2">
-                                                {category.label}
-                                                {hasPrefilledNote && <CheckCircle2 className="w-5 h-5 text-green-500" title="מידע מולא מראש" />}
-                                            </Label>
-                                            <StarRating
-                                                rating={ratingData?.rating || 0}
-                                                setRating={(rating) => handleRatingChange(category.id, rating)}
-                                            />
-                                        </div>
-                                        {hasPrefilledNote ? (
-                                            <div className="p-3 bg-secondary rounded-md text-sm text-muted-foreground">
-                                                <span className="font-semibold text-foreground">מידע מהמודעה:</span> {displayValue}
-                                            </div>
-                                        ) : (
-                                            <Textarea
-                                                placeholder={`הערות על ${category.label.toLowerCase()}...`}
-                                                value={ratingData?.notes || ''}
-                                                onChange={(e) => handleNotesChange(category.id, e.target.value)}
-                                                rows={2}
-                                                className="resize-none"
-                                            />
-                                        )}
+                        return (
+                            <div key={category.id}>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-base font-medium flex items-center gap-2">
+                                            {category.label}
+                                            {/* ======================= התיקון נמצא כאן ======================= */}
+                                            {hasPrefilledNote && (
+                                                <span title="מידע מולא מראש">
+                                                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                                </span>
+                                            )}
+                                            {/* ========================================================== */}
+                                        </Label>
+                                        <StarRating
+                                            rating={ratingData?.rating || 0}
+                                            setRating={(rating) => handleRatingChange(category.id, rating)}
+                                        />
                                     </div>
-                                    {index < orderedRatingCategories.length - 1 && <Separator className="mt-6" />}
+                                    {hasPrefilledNote ? (
+                                        <div className="p-3 bg-secondary rounded-md text-sm text-muted-foreground">
+                                            <span className="font-semibold text-foreground">מידע מהמודעה:</span> {displayValue}
+                                        </div>
+                                    ) : (
+                                        <Textarea
+                                            placeholder={`הערות על ${category.label.toLowerCase()}...`}
+                                            value={ratingData?.notes || ''}
+                                            onChange={(e) => handleNotesChange(category.id, e.target.value)}
+                                            rows={2}
+                                            className="resize-none"
+                                        />
+                                    )}
                                 </div>
-                            );
-                        })}
-                    </CardContent>
-                 </Card>
+                                {index < orderedRatingCategories.length - 1 && <Separator className="mt-6" />}
+                            </div>
+                        );
+                    })}
+                </CardContent>
+             </Card>
 
-                 <Card>
-                    <CardHeader><CardTitle>הערות כלליות</CardTitle></CardHeader>
-                    <CardContent>
-                        <Textarea 
-                            placeholder="רשום פה כל דבר שעולה לך לראש - יתרונות, חסרונות, תזכורות..." 
-                            rows={5}
-                            value={checklist.generalNotes || manualData?.description || ''}
-                            onChange={(e) => handleChecklistUpdate({ generalNotes: e.target.value })}
-                        />
-                    </CardContent>
-                </Card>
+             <Card>
+                <CardHeader><CardTitle>הערות כלליות</CardTitle></CardHeader>
+                <CardContent>
+                    <Textarea 
+                        placeholder="רשום פה כל דבר שעולה לך לראש - יתרונות, חסרונות, תזכורות..." 
+                        rows={5}
+                        value={checklist.generalNotes || manualData?.description || ''}
+                        onChange={(e) => handleChecklistUpdate({ generalNotes: e.target.value })}
+                    />
+                </CardContent>
+            </Card>
 
             <div className="flex justify-end">
                 <Button onClick={handleSave} disabled={saving} size="lg">
