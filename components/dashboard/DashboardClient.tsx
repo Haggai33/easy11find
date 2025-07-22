@@ -192,7 +192,8 @@ export default function DashboardClient() {
                     )}
 
                     <div className="flex gap-2 pt-2">
-                      <Link href={`/dashboard/checklist/${listing.trackingId || listing.listingId}`} className="flex-1">
+                      <Link href={`/dashboard/checklist/${listing.listingId}`} className="flex-1">
+
                         <Button variant="outline" size="sm" className="w-full">
                           View Checklist
                         </Button>
