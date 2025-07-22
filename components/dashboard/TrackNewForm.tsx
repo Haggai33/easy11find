@@ -181,7 +181,7 @@ export default function TrackNewForm() {
                             <Input id="address" value={manualData.address} onChange={(e) => handleManualDataChange('address', e.target.value)} required />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="rent">שכ"ד</Label>
+                            <Label htmlFor="rent">שכ&quotד</Label>
                             <Input id="rent" type="number" value={manualData.rent || ''} onChange={(e) => handleManualDataChange('rent', e.target.value)} />
                         </div>
                     </div>
@@ -196,7 +196,7 @@ export default function TrackNewForm() {
                              <Input placeholder="שם" value={manualData.tenantContact?.name} onChange={e => handleContactChange('tenantContact', 'name', e.target.value)} />
                              <Input type="tel" placeholder="טלפון" value={manualData.tenantContact?.phone} onChange={e => handleContactChange('tenantContact', 'phone', e.target.value)} />
                         </div>
-                         <Label>בעל הדירה (אופציונלי, אפשר למלא אח"כ)</Label>
+                         <Label>בעל הדירה (אופציונלי, אפשר למלא אח&quotכ)</Label>
                          <div className="grid grid-cols-2 gap-4">
                              <Input placeholder="שם" value={manualData.landlordContact?.name} onChange={e => handleContactChange('landlordContact', 'name', e.target.value)} />
                              <Input type="tel" placeholder="טלפון" value={manualData.landlordContact?.phone} onChange={e => handleContactChange('landlordContact', 'phone', e.target.value)} />

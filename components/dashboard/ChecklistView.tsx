@@ -225,8 +225,7 @@ export default function ChecklistView({ trackedListingId }: { trackedListingId: 
 
                  <Card>
                     <CardHeader>
-                        <CardTitle>צ'קליסט ודירוג</CardTitle>
-                        <div className="flex justify-between items-center">
+                        <CardTitle>צ&aposקליסט ודירוג</CardTitle>                        <div className="flex justify-between items-center">
                             <CardDescription>כאן אפשר לדרג את הפרמטרים החשובים לך ולרשום הערות.</CardDescription>
                             <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
                                 <SelectTrigger className="w-full sm:w-[200px]">
