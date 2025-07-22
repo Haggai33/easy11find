@@ -1,6 +1,6 @@
 // /lib/seekerService.ts
 import { db } from './firebase';
-import { ref, set, get, push, update } from 'firebase/database';
+import { ref, set, get, push, update, remove } from 'firebase/database';
 import { TrackedListing, PrivateChecklist, PreferenceProfile } from './types';
 
 // Function to add an existing listing to a user's tracking list
