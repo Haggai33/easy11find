@@ -169,7 +169,7 @@ export default function CreateListingForm() {
                 className="w-full"
               />
               <p className="text-sm text-muted-foreground">
-                We'll send you an edit link to manage your listing
+                We&apos;ll send you an edit link to manage your listing
               </p>
             </div>
 
