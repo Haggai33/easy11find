@@ -44,7 +44,7 @@ const ContactActions = ({ contact }: { contact?: ContactDetails }) => {
 
 const AddressLink = ({ address }: { address?: string }) => {
     if (!address) return <span>כתובת לא צוינה</span>;
-    // תיקון הקישור ל-Google Maps
+    
     return (
         <a href={`google.com/maps?q=...{encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
             <MapPin className="w-5 h-5" /> {address}
@@ -158,11 +158,9 @@ export default function ChecklistView({ trackedListingId }: { trackedListingId: 
         const { success } = await updatePrivateChecklist(user.uid, trackedListingId, checklist);
         setSaving(false);
         if (success) {
-            // ======================= התיקון נמצא כאן =======================
             toast.success("הצ'קליסט עודכן!");
         } else {
             toast.error("שמירת הצ'קליסט נכשלה.");
-            // ==========================================================
         }
     };
 
@@ -227,7 +225,9 @@ export default function ChecklistView({ trackedListingId }: { trackedListingId: 
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <div>
-                            <CardTitle>צ'קליסט ודירוג</CardTitle>
+                            {/* ======================= התיקון נמצא כאן ======================= */}
+                            <CardTitle>צ{"'"}קליסט ודירוג</CardTitle>
+                            {/* ========================================================== */}
                             <CardDescription>כאן אפשר לדרג את הפרמטרים החשובים לך ולרשום הערות.</CardDescription>
                         </div>
                         <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
