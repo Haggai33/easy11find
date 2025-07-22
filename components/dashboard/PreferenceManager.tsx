@@ -4,137 +4,253 @@
 import { useState, useEffect } from 'react';
 import { useCurrentUser } from '@/hooks/useStore';
 import { getUserPreferenceProfiles, savePreferenceProfile, updatePreferenceProfile, deletePreferenceProfile } from '@/lib/seekerService';
-import { PreferenceProfile } from '@/lib/types';
+import { PreferenceProfile, ProfileField } from '@/lib/types';
 import toast from 'react-hot-toast';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, TouchSensor } from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import Link from 'next/link';
+
+// Import UI Components
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, Edit, Save } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
-const defaultFields = [
-    { id: 'location', label: 'Location & Neighborhood' },
-    { id: 'condition', label: 'Apartment Condition' },
-    { id: 'size', label: 'Size & Layout' },
-    { id: 'price', label: 'Price Value' },
-    { id: 'landlord', label: 'Landlord/Agent' },
-    { id: 'amenities', label: 'Amenities & Features' },
+// Import Icons
+import { Plus, Trash2, Edit, Save, ArrowLeft, GripVertical } from 'lucide-react';
+
+const defaultFields: ProfileField[] = [
+    { id: 'location', label: 'מיקום ושכונה', isCustom: false },
+    { id: 'condition', label: 'מצב הדירה', isCustom: false },
+    { id: 'size', label: 'גודל ומבנה', isCustom: false },
+    { id: 'price', label: 'מחיר ותמורה', isCustom: false },
+    { id: 'landlord', label: 'בעל הדירה', isCustom: false },
+    { id: 'amenities', label: 'פינוקים ותוספות', isCustom: false },
 ];
 
+// ------------------- קומפוננטה פנימית לפריט שניתן לגרירה -------------------
+function DraggableFieldItem({ profile, field, onToggleRequired, onDeleteCustom }) {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: field.id });
 
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    const isChecked = profile.requiredFields.includes(field.id);
+    const isDisabled = !isChecked && profile.requiredFields.length >= 3;
+
+    return (
+        <div ref={setNodeRef} style={style} className="flex items-center gap-2 p-3 bg-secondary rounded-lg mb-2">
+            <div {...attributes} {...listeners} className="cursor-grab p-1 touch-none">
+                <GripVertical className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="flex-grow">
+                <p className="font-medium">{field.label}</p>
+            </div>
+            <div onPointerDown={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id={`required-${field.id}`}
+                        checked={isChecked}
+                        onCheckedChange={() => onToggleRequired(field.id)}
+                        disabled={isDisabled}
+                    />
+                    <Label htmlFor={`required-${field.id}`} className={isDisabled ? 'text-muted-foreground cursor-not-allowed' : 'cursor-pointer'}>
+                        שדה חובה
+                    </Label>
+                </div>
+                {field.isCustom && (
+                    <Button variant="ghost" size="icon" onClick={() => onDeleteCustom(field.id)} className="text-destructive">
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ------------------- הקומפוננטה הראשית -------------------
 export default function PreferenceManager() {
     const user = useCurrentUser();
     const [profiles, setProfiles] = useState<Record<string, PreferenceProfile>>({});
-    const [newProfileName, setNewProfileName] = useState('');
-    const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+    const [newCustomFieldName, setNewCustomFieldName] = useState('');
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+    );
+    
     useEffect(() => {
         if (user) {
-            getUserPreferenceProfiles(user.uid).then(({ profiles }) => {
-                if (profiles) setProfiles(profiles);
+            getUserPreferenceProfiles(user.uid).then(({ profiles: fetchedProfiles }) => {
+                if (fetchedProfiles) {
+                    const updatedProfiles = Object.fromEntries(
+                        Object.entries(fetchedProfiles).map(([id, profile]) => [
+                            id,
+                            {
+                                ...profile,
+                                fields: profile.fields || defaultFields,
+                                requiredFields: profile.requiredFields || [],
+                                fieldOrder: profile.fieldOrder || defaultFields.map(f => f.id)
+                            },
+                        ])
+                    );
+                    setProfiles(updatedProfiles);
+                }
             });
         }
     }, [user]);
 
-    const handleCreateProfile = async () => {
-        if (!user || !newProfileName.trim()) return;
-        const newProfileData = {
-            name: newProfileName,
-            fieldOrder: defaultFields.map(f => f.id),
-        };
-        const { success, profile } = await savePreferenceProfile(user.uid, newProfileData);
-        if (success && profile) {
-            setProfiles(prev => ({ ...prev, [profile.id]: profile }));
-            setNewProfileName('');
-            toast.success('Profile created!');
-        } else {
-            toast.error('Failed to create profile.');
-        }
-    };
-
     const handleUpdateProfile = async (profileId: string) => {
         if (!user) return;
-        const profile = profiles[profileId];
-        const { success } = await updatePreferenceProfile(user.uid, profileId, { name: profile.name, fieldOrder: profile.fieldOrder });
-        if (success) {
-            toast.success('Profile updated!');
-            setEditingProfileId(null);
-        } else {
-            toast.error('Failed to update profile.');
-        }
+        const profileToUpdate = profiles[profileId];
+        await updatePreferenceProfile(user.uid, profileId, profileToUpdate);
+        toast.success('הפרופיל עודכן בהצלחה!');
     };
 
-    const handleDeleteProfile = async (profileId: string) => {
-        if (!user || !window.confirm('Are you sure you want to delete this profile?')) return;
-        const { success } = await deletePreferenceProfile(user.uid, profileId);
-        if (success) {
-            const newProfiles = { ...profiles };
-            delete newProfiles[profileId];
-            setProfiles(newProfiles);
-            toast.success('Profile deleted.');
-        } else {
-            toast.error('Failed to delete profile.');
-        }
-    };
-
-    const handleFieldOrderChange = (profileId: string, sourceIndex: number, destIndex: number) => {
-        const profile = profiles[profileId];
-        const newOrder = Array.from(profile.fieldOrder);
-        const [removed] = newOrder.splice(sourceIndex, 1);
-        newOrder.splice(destIndex, 0, removed);
+    const handleAddCustomField = (profileId: string) => {
+        if (!newCustomFieldName.trim()) return;
+        const newField: ProfileField = {
+            id: `custom-${Date.now()}`,
+            label: newCustomFieldName,
+            isCustom: true,
+        };
+        
         setProfiles(prev => ({
             ...prev,
-            [profileId]: { ...profile, fieldOrder: newOrder }
+            [profileId]: {
+                ...prev[profileId],
+                fields: [...prev[profileId].fields, newField],
+                fieldOrder: [...prev[profileId].fieldOrder, newField.id],
+            },
         }));
+        setNewCustomFieldName('');
+    };
+    
+    const handleDeleteCustomField = (profileId: string, fieldIdToDelete: string) => {
+        setProfiles(prev => ({
+            ...prev,
+            [profileId]: {
+                ...prev[profileId],
+                fields: prev[profileId].fields.filter(f => f.id !== fieldIdToDelete),
+                fieldOrder: prev[profileId].fieldOrder.filter(id => id !== fieldIdToDelete),
+                requiredFields: prev[profileId].requiredFields.filter(id => id !== fieldIdToDelete),
+            },
+        }));
+    };
+
+    // ======================= התיקון הסופי והמחייב נמצא כאן =======================
+    const handleToggleRequired = (profileId: string, fieldId: string) => {
+        setProfiles(prev => {
+            const currentProfile = prev[profileId];
+            const required = currentProfile.requiredFields;
+            const isAlreadyRequired = required.includes(fieldId);
+            let newRequiredFields;
+
+            if (isAlreadyRequired) {
+                newRequiredFields = required.filter(id => id !== fieldId);
+            } else if (required.length < 3) {
+                newRequiredFields = [...required, fieldId];
+            } else {
+                toast.error('אפשר לסמן עד 3 שדות חובה בלבד');
+                return prev; 
+            }
+
+            return {
+                ...prev,
+                [profileId]: {
+                    ...currentProfile,
+                    requiredFields: newRequiredFields,
+                },
+            };
+        });
+    };
+    // =====================================================================
+    
+    const handleDragEnd = (event, profileId) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            setProfiles(prev => {
+                const profile = prev[profileId];
+                const oldIndex = profile.fieldOrder.indexOf(active.id as string);
+                const newIndex = profile.fieldOrder.indexOf(over.id as string);
+                
+                return {
+                    ...prev,
+                    [profileId]: {
+                        ...profile,
+                        fieldOrder: arrayMove(profile.fieldOrder, oldIndex, newIndex),
+                    },
+                };
+            });
+        }
     };
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Manage Preference Profiles</CardTitle>
+                <div className="flex items-center gap-4">
+                    <Link href="/dashboard">
+                        <Button variant="outline" size="icon">
+                            <ArrowLeft className="w-4 h-4" />
+                        </Button>
+                    </Link>
+                    <div>
+                        <CardTitle>ניהול פרופילי העדפות</CardTitle>
+                        <CardDescription>סדר, הוסף וסמן מה חשוב לך בכל פרופיל</CardDescription>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="flex gap-2">
-                    <Input
-                        value={newProfileName}
-                        onChange={(e) => setNewProfileName(e.target.value)}
-                        placeholder="New profile name (e.g., 'For me & my partner')"
-                    />
-                    <Button onClick={handleCreateProfile}><Plus className="w-4 h-4 mr-2" /> Add</Button>
-                </div>
-
                 <div className="space-y-4">
+                    {Object.keys(profiles).length === 0 && (
+                        <p className="text-center text-muted-foreground py-8">טוען פרופילים...</p>
+                    )}
                     {Object.values(profiles).map(profile => (
-                        <Card key={profile.id} className="p-4">
+                        <Card key={profile.id} className="p-4 border-2 border-primary/20">
                             <div className="flex justify-between items-center mb-4">
-                                {editingProfileId === profile.id ? (
+                               <h3 className="text-xl font-bold text-primary">{profile.name}</h3>
+                               <Button onClick={() => handleUpdateProfile(profile.id)}>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    שמור שינויים בפרופיל
+                                </Button>
+                            </div>
+
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, profile.id)}>
+                                <SortableContext items={profile.fieldOrder} strategy={verticalListSortingStrategy}>
+                                    {profile.fieldOrder.map(fieldId => {
+                                        const field = profile.fields.find(f => f.id === fieldId);
+                                        if (!field) return null;
+                                        return (
+                                            <DraggableFieldItem
+                                                key={field.id}
+                                                profile={profile}
+                                                field={field}
+                                                onToggleRequired={(fid) => handleToggleRequired(profile.id, fid)}
+                                                onDeleteCustom={(fid) => handleDeleteCustomField(profile.id, fid)}
+                                            />
+                                        );
+                                    })}
+                                </SortableContext>
+                            </DndContext>
+
+                            <div className="mt-6 pt-4 border-t">
+                                <Label htmlFor="new-custom-field" className="font-semibold">הוספת פרמטר אישי</Label>
+                                <div className="flex gap-2 mt-2">
                                     <Input
-                                        value={profile.name}
-                                        onChange={(e) => setProfiles(p => ({ ...p, [profile.id]: { ...profile, name: e.target.value } }))}
+                                        id="new-custom-field"
+                                        value={newCustomFieldName}
+                                        onChange={(e) => setNewCustomFieldName(e.target.value)}
+                                        placeholder='לדוגמה: "רעש מהשכנים", "מרחק מהעבודה"'
                                     />
-                                ) : (
-                                    <h3 className="font-semibold">{profile.name}</h3>
-                                )}
-                                <div className="flex gap-2">
-                                    {editingProfileId === profile.id ? (
-                                        <Button size="sm" onClick={() => handleUpdateProfile(profile.id)}><Save className="w-4 h-4 mr-2" /> Save</Button>
-                                    ) : (
-                                        <Button size="sm" variant="ghost" onClick={() => setEditingProfileId(profile.id)}><Edit className="w-4 h-4" /></Button>
-                                    )}
-                                    <Button size="sm" variant="destructive" onClick={() => handleDeleteProfile(profile.id)}><Trash2 className="w-4 h-4" /></Button>
+                                    <Button onClick={() => handleAddCustomField(profile.id)} variant="secondary">
+                                        <Plus className="w-4 h-4 mr-2" /> הוסף
+                                    </Button>
                                 </div>
                             </div>
-                            {/* Drag and drop functionality would be implemented here */}
-                            <p className="text-sm text-muted-foreground mb-2">Parameter Order (Drag & Drop to reorder):</p>
-                            <ul className="space-y-2">
-                                {profile.fieldOrder.map((fieldId, index) => {
-                                    const field = defaultFields.find(f => f.id === fieldId);
-                                    return (
-                                        <li key={fieldId} className="flex items-center p-2 bg-secondary rounded">
-                                            {index + 1}. {field?.label}
-                                        </li>
-                                    )
-                                })}
-                            </ul>
                         </Card>
                     ))}
                 </div>
