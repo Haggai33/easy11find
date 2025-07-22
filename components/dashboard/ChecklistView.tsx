@@ -46,7 +46,7 @@ const AddressLink = ({ address }: { address?: string }) => {
     if (!address) return <span>כתובת לא צוינה</span>;
     // תיקון הקישור ל-Google Maps
     return (
-        <a href={`https://www.google.com/maps?q=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
+        <a href={`google.com/maps?q=...{encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
             <MapPin className="w-5 h-5" /> {address}
         </a>
     );
@@ -158,9 +158,11 @@ export default function ChecklistView({ trackedListingId }: { trackedListingId: 
         const { success } = await updatePrivateChecklist(user.uid, trackedListingId, checklist);
         setSaving(false);
         if (success) {
-            toast.success('הצ\'קליסט עודכן!');
+            // ======================= התיקון נמצא כאן =======================
+            toast.success("הצ'קליסט עודכן!");
         } else {
-            toast.error('שמירת הצ\'קליסט נכשלה.');
+            toast.error("שמירת הצ'קליסט נכשלה.");
+            // ==========================================================
         }
     };
 
@@ -256,13 +258,11 @@ export default function ChecklistView({ trackedListingId }: { trackedListingId: 
                                     <div className="flex items-center justify-between">
                                         <Label className="text-base font-medium flex items-center gap-2">
                                             {category.label}
-                                            {/* ======================= התיקון נמצא כאן ======================= */}
                                             {hasPrefilledNote && (
                                                 <span title="מידע מולא מראש">
                                                     <CheckCircle2 className="w-5 h-5 text-green-500" />
                                                 </span>
                                             )}
-                                            {/* ========================================================== */}
                                         </Label>
                                         <StarRating
                                             rating={ratingData?.rating || 0}
